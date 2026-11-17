@@ -94,6 +94,7 @@ components:
     enabled: true
     replicas: 1
     image: { repository: mysql, tag: "8.0" }
+    resources: { requests: { cpu: 50m, memory: 256Mi }, limits: { cpu: 500m, memory: 768Mi } }
     containerPort: 3306
     servicePort: 3306
     env: { MYSQL_DATABASE: catalog, MYSQL_USER: catalog }
@@ -106,6 +107,7 @@ components:
     enabled: true
     replicas: 1
     image: { repository: mysql, tag: "8.0" }
+    resources: { requests: { cpu: 50m, memory: 256Mi }, limits: { cpu: 500m, memory: 768Mi } }
     containerPort: 3306
     servicePort: 3306
     env: { MYSQL_DATABASE: orders, MYSQL_USER: orders }
