@@ -1,0 +1,80 @@
+name: eshop-helm-ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  lint-and-validate:
+    name: Lint & validate (${{ matrix.env }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        env: [dev, test, preprod, prod]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/setup-helm@v4
+
+      - name: Helm lint
+        run: helm lint eshop -f eshop/values-${{ matrix.env }}.yaml
+
+      - name: Render templates
+        run: helm template eshop eshop -n ${{ matrix.env }} -f eshop/values-${{ matrix.env }}.yaml > rendered-${{ matrix.env }}.yaml
+
+      - name: Validate manifests with kubeconform
+        run: |
+          curl -sSL https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz | tar xz
+          ./kubeconform -strict -summary -ignore-missing-schemas rendered-${{ matrix.env }}.yaml
+
+  deploy-test:
+    name: Test deploy on kind
+    needs: lint-and-validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/setup-helm@v4
+
+      - name: Create kind cluster
+        uses: helm/kind-action@v1
+
+      - name: Install chart (dev values)
+        run: |
+          helm upgrade --install eshop ./eshop -n dev --create-namespace \
+            -f eshop/values-dev.yaml --set ingress.enabled=false \
+            --wait --timeout 10m
+
+      - name: Smoke test the UI
+        run: |
+          kubectl port-forward svc/ui 8080:80 -n dev &
+          sleep 5
+          curl -sS --retry 10 --retry-delay 5 --retry-connrefused -o /dev/null -w "HTTP %{http_code}\n" http://localhost:8080/
+
+      - name: Show cluster state on failure
+        if: failure()
+        run: |
+          kubectl get pods -n dev
+          kubectl describe pods -n dev | tail -100
+          kubectl logs -n dev --all-containers --tail=30 -l app.kubernetes.io/part-of=eshop
+
+  package:
+    name: Package chart
+    needs: deploy-test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/setup-helm@v4
+
+      - name: Package
+        run: helm package eshop --destination dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: eshop-chart
+          path: dist/*.tgz
