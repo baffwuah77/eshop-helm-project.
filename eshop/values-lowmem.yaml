@@ -1,0 +1,50 @@
+global:
+  replicas: 1
+  resources:
+    requests: { cpu: 25m, memory: 32Mi }
+    limits:   { cpu: 500m, memory: 128Mi }
+
+ingress:
+  enabled: false
+
+components:
+  ui:
+    env: { JAVA_TOOL_OPTIONS: "-Xmx160m -Xms32m -XX:+UseSerialGC" }
+    resources:
+      requests: { cpu: 50m, memory: 128Mi }
+      limits:   { cpu: 500m, memory: 384Mi }
+  carts:
+    env: { JAVA_TOOL_OPTIONS: "-Xmx160m -Xms32m -XX:+UseSerialGC" }
+    resources:
+      requests: { cpu: 50m, memory: 128Mi }
+      limits:   { cpu: 500m, memory: 384Mi }
+  orders:
+    env: { JAVA_TOOL_OPTIONS: "-Xmx160m -Xms32m -XX:+UseSerialGC" }
+    resources:
+      requests: { cpu: 50m, memory: 128Mi }
+      limits:   { cpu: 500m, memory: 384Mi }
+  carts-dynamodb:
+    env: { JAVA_TOOL_OPTIONS: "-Xmx128m -Xms32m -XX:+UseSerialGC" }
+    resources:
+      requests: { cpu: 25m, memory: 128Mi }
+      limits:   { cpu: 500m, memory: 320Mi }
+  catalog-mysql:
+    resources:
+      requests: { cpu: 50m, memory: 200Mi }
+      limits:   { cpu: 500m, memory: 450Mi }
+  orders-mysql:
+    resources:
+      requests: { cpu: 50m, memory: 200Mi }
+      limits:   { cpu: 500m, memory: 450Mi }
+  rabbitmq:
+    resources:
+      requests: { cpu: 25m, memory: 100Mi }
+      limits:   { cpu: 500m, memory: 320Mi }
+  checkout-redis:
+    resources:
+      requests: { cpu: 10m, memory: 16Mi }
+      limits:   { cpu: 200m, memory: 64Mi }
+  checkout:
+    resources:
+      requests: { cpu: 25m, memory: 64Mi }
+      limits:   { cpu: 300m, memory: 192Mi }

@@ -1,0 +1,12 @@
+global:
+  replicas: 2
+ingress:
+  host: preprod.eshop.local
+secrets:
+  mysqlPassword: "CHANGE_ME"        # pass with --set in the pipeline
+  mysqlRootPassword: "CHANGE_ME"
+components:
+  catalog-mysql:
+    persistence: { enabled: true, size: 10Gi, mountPath: /var/lib/mysql }
+  orders-mysql:
+    persistence: { enabled: true, size: 10Gi, mountPath: /var/lib/mysql }

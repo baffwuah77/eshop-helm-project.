@@ -1,0 +1,15 @@
+global:
+  replicas: 3
+  resources:
+    requests: { cpu: 250m, memory: 512Mi }
+    limits:   { cpu: "1",  memory: 1Gi }
+ingress:
+  host: eshop.example.com
+secrets:
+  mysqlPassword: "CHANGE_ME"        # inject at deploy time, never commit real secrets
+  mysqlRootPassword: "CHANGE_ME"
+components:
+  catalog-mysql:
+    persistence: { enabled: true, size: 20Gi, mountPath: /var/lib/mysql }
+  orders-mysql:
+    persistence: { enabled: true, size: 20Gi, mountPath: /var/lib/mysql }

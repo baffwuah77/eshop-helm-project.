@@ -1,0 +1,7 @@
+global:
+  replicas: 1
+ingress:
+  host: test.eshop.local
+secrets:
+  mysqlPassword: "test-db-pass"
+  mysqlRootPassword: "test-root-pass"

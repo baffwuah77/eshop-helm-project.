@@ -1,0 +1,136 @@
+# ---- Defaults shared by every environment (override in values-<env>.yaml) ----
+global:
+  imageTag: "1.2.1"
+  imagePullPolicy: IfNotPresent
+  replicas: 1
+  storageClass: ""
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits:   { cpu: 500m, memory: 512Mi }
+
+secrets:                      # CHANGE for every environment (or use --set / external secret manager)
+  mysqlRootPassword: "rootpass"
+  mysqlPassword: "dbpass"
+  rabbitmqPassword: "guest"
+
+ingress:
+  enabled: true
+  className: nginx
+  host: eshop.local
+
+components:
+  # ---------------- App services ----------------
+  ui:
+    enabled: true
+    image: { repository: public.ecr.aws/aws-containers/retail-store-sample-ui }
+    containerPort: 8080
+    servicePort: 80
+    env:
+      RETAIL_UI_ENDPOINTS_CATALOG: http://catalog
+      RETAIL_UI_ENDPOINTS_CARTS: http://carts
+      RETAIL_UI_ENDPOINTS_CHECKOUT: http://checkout
+      RETAIL_UI_ENDPOINTS_ORDERS: http://orders
+      RETAIL_UI_ENDPOINTS_ASSETS: http://assets
+
+  catalog:
+    enabled: true
+    image: { repository: public.ecr.aws/aws-containers/retail-store-sample-catalog }
+    containerPort: 8080
+    servicePort: 80
+    env:
+      RETAIL_CATALOG_PERSISTENCE_PROVIDER: mysql
+      RETAIL_CATALOG_PERSISTENCE_ENDPOINT: catalog-mysql:3306
+      RETAIL_CATALOG_PERSISTENCE_DB_NAME: catalog
+      RETAIL_CATALOG_PERSISTENCE_USER: catalog
+    secretEnv:
+      RETAIL_CATALOG_PERSISTENCE_PASSWORD: mysql-password
+
+  carts:
+    enabled: true
+    image: { repository: public.ecr.aws/aws-containers/retail-store-sample-cart }
+    containerPort: 8080
+    servicePort: 80
+    env:
+      RETAIL_CART_PERSISTENCE_PROVIDER: dynamodb
+      RETAIL_CART_PERSISTENCE_DYNAMODB_ENDPOINT: http://carts-dynamodb:8000
+      RETAIL_CART_PERSISTENCE_DYNAMODB_CREATE_TABLE: "true"
+      AWS_ACCESS_KEY_ID: key
+      AWS_SECRET_ACCESS_KEY: dummy
+      AWS_REGION: us-east-1
+
+  checkout:
+    enabled: true
+    image: { repository: public.ecr.aws/aws-containers/retail-store-sample-checkout }
+    containerPort: 8080
+    servicePort: 80
+    env:
+      RETAIL_CHECKOUT_PERSISTENCE_PROVIDER: redis
+      RETAIL_CHECKOUT_PERSISTENCE_REDIS_URL: redis://checkout-redis:6379
+      RETAIL_CHECKOUT_ENDPOINTS_ORDERS: http://orders
+
+  orders:
+    enabled: true
+    image: { repository: public.ecr.aws/aws-containers/retail-store-sample-orders }
+    containerPort: 8080
+    servicePort: 80
+    env:
+      RETAIL_ORDERS_PERSISTENCE_PROVIDER: mysql
+      RETAIL_ORDERS_PERSISTENCE_ENDPOINT: orders-mysql:3306
+      RETAIL_ORDERS_PERSISTENCE_NAME: orders
+      RETAIL_ORDERS_PERSISTENCE_USERNAME: orders
+      RETAIL_ORDERS_MESSAGING_PROVIDER: rabbitmq
+      RETAIL_ORDERS_MESSAGING_RABBITMQ_ADDRESSES: rabbitmq:5672
+    secretEnv:
+      RETAIL_ORDERS_PERSISTENCE_PASSWORD: mysql-password
+
+  assets:
+    enabled: true
+    image: { repository: public.ecr.aws/aws-containers/retail-store-sample-assets, tag: "0.4.0" }
+    containerPort: 8080
+    servicePort: 80
+
+  # ---------------- Persistence / messaging (single replica) ----------------
+  catalog-mysql:
+    enabled: true
+    replicas: 1
+    image: { repository: mysql, tag: "8.0" }
+    containerPort: 3306
+    servicePort: 3306
+    env: { MYSQL_DATABASE: catalog, MYSQL_USER: catalog }
+    secretEnv:
+      MYSQL_ROOT_PASSWORD: mysql-root-password
+      MYSQL_PASSWORD: mysql-password
+    persistence: { enabled: false, size: 5Gi, mountPath: /var/lib/mysql }
+
+  orders-mysql:
+    enabled: true
+    replicas: 1
+    image: { repository: mysql, tag: "8.0" }
+    containerPort: 3306
+    servicePort: 3306
+    env: { MYSQL_DATABASE: orders, MYSQL_USER: orders }
+    secretEnv:
+      MYSQL_ROOT_PASSWORD: mysql-root-password
+      MYSQL_PASSWORD: mysql-password
+    persistence: { enabled: false, size: 5Gi, mountPath: /var/lib/mysql }
+
+  carts-dynamodb:
+    enabled: true
+    replicas: 1
+    image: { repository: amazon/dynamodb-local, tag: "1.13.1" }
+    containerPort: 8000
+    servicePort: 8000
+
+  checkout-redis:
+    enabled: true
+    replicas: 1
+    image: { repository: redis, tag: "6.0-alpine" }
+    containerPort: 6379
+    servicePort: 6379
+
+  rabbitmq:
+    enabled: true
+    replicas: 1
+    image: { repository: rabbitmq, tag: "3-management" }
+    containerPort: 5672
+    servicePort: 5672
